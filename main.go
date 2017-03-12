@@ -10,9 +10,11 @@ import (
 const sampleRate = Frequency(44100)
 
 var phasor *TrigGenerator
+var phasor2 *TrigGenerator
 
 func main() {
 	phasor = NewTrigGenerator(sampleRate)
+	phasor2 = NewTrigGenerator(sampleRate)
 
 	portaudio.Initialize()
 	defer portaudio.Terminate()
@@ -24,7 +26,7 @@ func main() {
 
 	defer stream.Close()
 	chk(stream.Start())
-	time.Sleep(1 * time.Second)
+	time.Sleep(10 * time.Second)
 	chk(stream.Stop())
 }
 
@@ -33,7 +35,10 @@ var t uint64
 func processAudio(out [][]float32) {
 	for i := range out[0] {
 		var tc = Timecode(t + uint64(i))
-		out[0][i] = float32(G2T(phasor.Sine, 250)(tc))
+
+		df := phasor2.Sine(tc, Frequency(2)) * 100
+
+		out[0][i] = float32(G2T(phasor.Sine, 350+Frequency(df))(tc))
 	}
 
 	t = t + uint64(len(out[0]))
