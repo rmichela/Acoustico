@@ -8,8 +8,8 @@ import (
 
 const sampleRate = Frequency(44100)
 
-var phasor SineOscillator
-var phasor2 TriangleOscillator
+var phasor *Oscillator
+var phasor2 *Oscillator
 
 func main() {
 
@@ -36,9 +36,9 @@ func processAudio(out [][]float32) {
 	for i := range out[0] {
 		var tc = Timecode(t + uint64(i))
 
-		df := phasor2.Triangle(tc, Frequency(0.5)) * 200
+		df := phasor2.Sine(tc, Hz(0.5)) * 200
 
-		out[0][i] = float32(G2T(phasor.Sine, 350+Frequency(df))(tc))
+		out[0][i] = float32(G2T(phasor.Sine, Hz(500)+Frequency(df))(tc))
 	}
 
 	t = t + uint64(len(out[0]))

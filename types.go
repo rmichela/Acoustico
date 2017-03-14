@@ -6,6 +6,16 @@ type Timecode uint64
 // Frequency is an oscilation in hertz
 type Frequency float64
 
+// Hz returns a Frequency in hertz
+func Hz(f float64) Frequency {
+	return Frequency(f)
+}
+
+// KHz returns a Frequency in kilohertz
+func KHz(f float64) Frequency {
+	return Frequency(1000 * f)
+}
+
 // Amplitude is the intensity of a value
 type Amplitude float64
 
