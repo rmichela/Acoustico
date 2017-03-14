@@ -22,19 +22,33 @@ type Amplitude float64
 // TFunc provides a value at a given timecode
 type TFunc func(Timecode) Amplitude
 
-// Fixed returns a time invariant constant TFunc
-func Fixed(c float64) TFunc {
+// GFunc generates impulses at a given frequency
+type GFunc func(Timecode, Frequency) Amplitude
+
+// ConstFunc returns a time invariant constant TFunc
+func ConstFunc(c float64) TFunc {
 	return func(t Timecode) Amplitude {
 		return Amplitude(c)
 	}
 }
 
-// GFunc generates impulses at a given frequency
-type GFunc func(Timecode, Frequency) Amplitude
+// FreqFunc returns a time invariant constant TFunc
+func FreqFunc(c Frequency) TFunc {
+	return func(t Timecode) Amplitude {
+		return Amplitude(c)
+	}
+}
+
+// TMap applies function g to every value of TFunc f
+func TMap(f TFunc, g func(Amplitude) Amplitude) TFunc {
+	return func(t Timecode) Amplitude {
+		return (g(f(t)))
+	}
+}
 
 // G2T converts a GFunc to a TFunc by currying frequency
-func G2T(g GFunc, f Frequency) TFunc {
+func G2T(g GFunc, f TFunc) TFunc {
 	return func(t Timecode) Amplitude {
-		return g(t, f)
+		return g(t, Frequency(f(t)))
 	}
 }
