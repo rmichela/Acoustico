@@ -8,13 +8,13 @@ import (
 
 const sampleRate = Frequency(44100)
 
-var phasor SineGenerator
-var phasor2 TriangleGenerator
+var phasor SineOscillator
+var phasor2 TriangleOscillator
 
 func main() {
 
-	phasor = NewGenerator(sampleRate)
-	phasor2 = NewGenerator(sampleRate)
+	phasor = NewOscillator(sampleRate)
+	phasor2 = NewOscillator(sampleRate)
 
 	portaudio.Initialize()
 	defer portaudio.Terminate()

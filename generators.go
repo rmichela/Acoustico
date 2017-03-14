@@ -10,50 +10,50 @@ const twoPi = 2 * math.Pi
 // number of elapsed samples before stabilization occurs
 const stabilizationPeriod = 500
 
-// SineGenerator generates Sine waves
-type SineGenerator interface {
+// SineOscillator generates Sine waves
+type SineOscillator interface {
 	Sine(Timecode, Frequency) Amplitude
 }
 
-// CosineGenerator generates Cosine waves
-type CosineGenerator interface {
+// CosineOscillator generates Cosine waves
+type CosineOscillator interface {
 	Cosine(Timecode, Frequency) Amplitude
 }
 
-// SawtoothGenerator generates Sawtooth waves
-type SawtoothGenerator interface {
+// SawtoothOscillator generates Sawtooth waves
+type SawtoothOscillator interface {
 	Sawtooth(Timecode, Frequency) Amplitude
 }
 
-// SquareGenerator generates Square waves
-type SquareGenerator interface {
+// SquareOscillator generates Square waves
+type SquareOscillator interface {
 	Square(Timecode, Frequency) Amplitude
 }
 
-// TriangleGenerator generates Triangle waves
-type TriangleGenerator interface {
+// TriangleOscillator generates Triangle waves
+type TriangleOscillator interface {
 	Triangle(Timecode, Frequency) Amplitude
 }
 
-// Generator implements periodic waveform generators using a recursively defined
+// Oscillator implements periodic waveform Oscillators using a recursively defined
 // complex phasor.
 // - All waveforms are in the range [-1, 1]
 // - All waveforms (except cosine) are in phase with sine
 // -- https://en.wikipedia.org/wiki/File:Waveforms.svg
-type Generator struct {
-	// The last known generator timecode
+type Oscillator struct {
+	// The last known Oscillator timecode
 	t Timecode
 	// Time of last stabilization
 	s Timecode
-	// A phasor holding the current state of the trig generator
+	// A phasor holding the current state of the trig Oscillator
 	z complex128
 	// The sample rate for generation
 	sampleRate Frequency
 }
 
-// NewGenerator creates a new Generator
-func NewGenerator(f Frequency) *Generator {
-	gen := new(Generator)
+// NewOscillator creates a new Oscillator
+func NewOscillator(f Frequency) *Oscillator {
+	gen := new(Oscillator)
 	gen.t = 0
 	gen.s = 0
 	gen.sampleRate = f
@@ -64,7 +64,7 @@ func NewGenerator(f Frequency) *Generator {
 // Advances the phasor counterclockwise according the desired frequency with
 // respect to a change in time.
 // http://dsp.stackexchange.com/a/1087
-func (gen *Generator) advance(tʹ Timecode, f Frequency) {
+func (gen *Oscillator) advance(tʹ Timecode, f Frequency) {
 	// determine how many samples we have to advance
 	// typically this is one - more than one implies time dialation
 	Δt := tʹ - gen.t
@@ -97,7 +97,7 @@ func (gen *Generator) advance(tʹ Timecode, f Frequency) {
 }
 
 // Sine generates a sine wave
-func (gen *Generator) Sine(tʹ Timecode, f Frequency) Amplitude {
+func (gen *Oscillator) Sine(tʹ Timecode, f Frequency) Amplitude {
 	// advance the phasor
 	gen.advance(tʹ, f)
 	// return the 'sine' component of the phasor
@@ -105,7 +105,7 @@ func (gen *Generator) Sine(tʹ Timecode, f Frequency) Amplitude {
 }
 
 // Cosine generates a sine wave
-func (gen *Generator) Cosine(tʹ Timecode, f Frequency) Amplitude {
+func (gen *Oscillator) Cosine(tʹ Timecode, f Frequency) Amplitude {
 	// advance the phasor
 	gen.advance(tʹ, f)
 	// return the 'cosine' component of the phasor
@@ -113,7 +113,7 @@ func (gen *Generator) Cosine(tʹ Timecode, f Frequency) Amplitude {
 }
 
 // Sawtooth generates a sawtooth wave
-func (gen *Generator) Sawtooth(tʹ Timecode, f Frequency) Amplitude {
+func (gen *Oscillator) Sawtooth(tʹ Timecode, f Frequency) Amplitude {
 	// advance the phasor
 	gen.advance(tʹ, f)
 	// return the 'phase' of the phasor, normalized between [-1, 1]
@@ -121,7 +121,7 @@ func (gen *Generator) Sawtooth(tʹ Timecode, f Frequency) Amplitude {
 }
 
 // Square generates a square wave
-func (gen *Generator) Square(tʹ Timecode, f Frequency) Amplitude {
+func (gen *Oscillator) Square(tʹ Timecode, f Frequency) Amplitude {
 	// advance the phasor
 	gen.advance(tʹ, f)
 	// return the 'imaginary sign' component of the phasor
@@ -132,7 +132,7 @@ func (gen *Generator) Square(tʹ Timecode, f Frequency) Amplitude {
 }
 
 // Triangle generates a sawtooth wave
-func (gen *Generator) Triangle(tʹ Timecode, f Frequency) Amplitude {
+func (gen *Oscillator) Triangle(tʹ Timecode, f Frequency) Amplitude {
 	// advance the phasor
 	gen.advance(tʹ, f)
 	// return |Saw|, normalized between [-1, 1]
