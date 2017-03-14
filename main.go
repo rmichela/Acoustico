@@ -8,8 +8,8 @@ import (
 
 const sampleRate = Frequency(44100)
 
-var phasor *Oscillator
-var phasor2 *Oscillator
+var phasor TrigOscillator
+var phasor2 TrigOscillator
 
 func main() {
 

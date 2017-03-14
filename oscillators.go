@@ -20,6 +20,12 @@ type CosineOscillator interface {
 	Cosine(Timecode, Frequency) Amplitude
 }
 
+// TrigOscillator generates Sine and Cosine waves
+type TrigOscillator interface {
+	SineOscillator
+	CosineOscillator
+}
+
 // SawtoothOscillator generates Sawtooth waves
 type SawtoothOscillator interface {
 	Sawtooth(Timecode, Frequency) Amplitude
