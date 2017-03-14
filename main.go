@@ -36,9 +36,10 @@ func processAudio(out [][]float32) {
 	for i := range out[0] {
 		var tc = Timecode(t + uint64(i))
 
-		df := phasor2.Sine(tc, Hz(0.5)) * 200
+		//df := phasor2.Sine(tc, Hz(0.5)) * 200
+		df := G2T(phasor2.Sine, Hz(0.5))
 
-		out[0][i] = float32(G2T(phasor.Sine, Hz(500)+Frequency(df))(tc))
+		out[0][i] = float32(G2T(phasor.Sine, Hz(500)+Frequency(df(tc)*200))(tc))
 	}
 
 	t = t + uint64(len(out[0]))

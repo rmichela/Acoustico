@@ -22,6 +22,13 @@ type Amplitude float64
 // TFunc provides a value at a given timecode
 type TFunc func(Timecode) Amplitude
 
+// Fixed returns a time invariant constant TFunc
+func Fixed(c float64) TFunc {
+	return func(t Timecode) Amplitude {
+		return Amplitude(c)
+	}
+}
+
 // GFunc generates impulses at a given frequency
 type GFunc func(Timecode, Frequency) Amplitude
 
