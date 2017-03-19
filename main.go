@@ -20,7 +20,7 @@ func main() {
 	phasor = NewOscillator(sampleRate)
 	phasor2 = NewOscillator(sampleRate)
 
-	file, error := os.Open("hello.wav")
+	file, error := os.Open("samples/hello.wav")
 	chk(error)
 	wav, error := wav.New(file)
 	chk(error)
@@ -30,7 +30,7 @@ func main() {
 	defer portaudio.Terminate()
 
 	//sampler := monoSample(phasorFunc)
-	sampler := stereoSample(helloSample.AsTFunc(), helloSample.AsTFunc())
+	sampler := stereoSample(helloSample.AsLoopingTFunc(), helloSample.AsLoopingTFunc())
 	channels := 2
 	stream, err := portaudio.OpenDefaultStream(0, channels, float64(sampleRate), 0, sampler)
 	chk(err)

@@ -34,3 +34,11 @@ func (sample *Sample) AsTFunc() TFunc {
 		return Amplitude(sample.buffer[t])
 	}
 }
+
+// AsLoopingTFunc returns a TFunc expressing the underlying sample data in a loop.
+func (sample *Sample) AsLoopingTFunc() TFunc {
+	return func(t Timecode) Amplitude {
+		tsample := uint64(t) % uint64(sample.wav.Samples)
+		return Amplitude(sample.buffer[tsample])
+	}
+}
