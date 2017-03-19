@@ -1,9 +1,11 @@
 package main
 
 import (
+	"os"
 	"time"
 
 	"github.com/gordonklaus/portaudio"
+	"github.com/mjibson/go-dsp/wav"
 )
 
 const sampleRate = Frequency(44100)
@@ -11,17 +13,26 @@ const sampleRate = Frequency(44100)
 var phasor TrigOscillator
 var phasor2 TrigOscillator
 
+var helloSample *Sample
+
 func main() {
 
 	phasor = NewOscillator(sampleRate)
 	phasor2 = NewOscillator(sampleRate)
 
+	file, error := os.Open("hello.wav")
+	chk(error)
+	wav, error := wav.New(file)
+	chk(error)
+	helloSample, error = NewSample(wav)
+
 	portaudio.Initialize()
 	defer portaudio.Terminate()
-	// s := newStereoSine(256, 256, sampleRate)
-	var stream *portaudio.Stream
-	var err error
-	stream, err = portaudio.OpenDefaultStream(0, 1, float64(sampleRate), 0, processAudio)
+
+	//sampler := monoSample(phasorFunc)
+	sampler := stereoSample(helloSample.AsTFunc(), helloSample.AsTFunc())
+	channels := 2
+	stream, err := portaudio.OpenDefaultStream(0, channels, float64(sampleRate), 0, sampler)
 	chk(err)
 
 	defer stream.Close()
@@ -30,21 +41,36 @@ func main() {
 	chk(stream.Stop())
 }
 
-var t uint64
+func phasorFunc(t Timecode) Amplitude {
+	df := TMap(G2T(phasor2.Sine, FreqFunc(Hz(0.5))),
+		func(a Amplitude) Amplitude {
+			return 500 + a*200
+		})
 
-func processAudio(out [][]float32) {
-	for i := range out[0] {
-		var tc = Timecode(t + uint64(i))
+	return Amplitude(G2T(phasor.Sine, df)(t))
+}
 
-		df := TMap(G2T(phasor2.Sine, FreqFunc(Hz(0.5))),
-			func(a Amplitude) Amplitude {
-				return 500 + a*200
-			})
-
-		out[0][i] = float32(G2T(phasor.Sine, df)(tc))
+func monoSample(tfunc TFunc) func([][]float32) {
+	var t uint64
+	return func(out [][]float32) {
+		for i := range out[0] {
+			var tc = Timecode(t + uint64(i))
+			out[0][i] = float32(tfunc(tc))
+		}
+		t = t + uint64(len(out[0]))
 	}
+}
 
-	t = t + uint64(len(out[0]))
+func stereoSample(left TFunc, right TFunc) func([][]float32) {
+	var t uint64
+	return func(out [][]float32) {
+		for i := range out[0] {
+			var tc = Timecode(t + uint64(i))
+			out[0][i] = float32(left(tc))
+			out[1][i] = float32(right(tc))
+		}
+		t = t + uint64(len(out[0]))
+	}
 }
 
 func chk(err error) {

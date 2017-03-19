@@ -83,7 +83,7 @@ func (gen *Oscillator) advance(tʹ Timecode, f Frequency) {
 
 	// advance the phasor Δt units
 	for i := Δt; i > 0; i-- {
-		gen.z = gen.z * Ω
+		gen.z *= Ω
 	}
 
 	// stabilize the phasor's amplitude every once in a while
