@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/mjibson/go-dsp/spectral"
 )
@@ -38,6 +39,9 @@ func RenderStereo(left TFunc, right TFunc) Rasterizer {
 func Visualize(sampleRate Frequency, colormap Colormap, inner Rasterizer) Rasterizer {
 	options := new(spectral.PwelchOptions)
 	options.Scale_off = true
+	options.Pad = 256
+
+	var max float64
 
 	return func(out [][]float64) {
 		// compute raster values from the inner rasterizer
@@ -51,20 +55,22 @@ func Visualize(sampleRate Frequency, colormap Colormap, inner Rasterizer) Raster
 		}
 
 		// compute the averge PSD for all segments
-		psd := make([]float64, len(segments[0])/2+1) // output of FFT is len(time domain)/2+1
+		psd := make([]float64, options.Pad/2+1) // output of FFT is len(time domain)/2+1
 		for _, seg := range segments {
 			// compute the PSD for each segment
 			pxx, _ := spectral.Pwelch(seg, float64(sampleRate), options)
 			for i := range pxx {
 				psd[i] += pxx[i]
-				// printColor(pxx[i], colormap)
 			}
 			// println()
 		}
 		// divide by number of segments to get average, then print
 		for i := range psd {
-			// psd[i] /= float64(len(segments))
-			printColor(psd[i], colormap)
+			psd[i] /= float64(len(segments))
+
+			max = math.Max(max, psd[i])
+
+			printColor(psd[i]/max, colormap)
 		}
 		println()
 	}

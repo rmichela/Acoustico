@@ -31,8 +31,11 @@ func main() {
 	portaudio.Initialize()
 	defer portaudio.Terminate()
 
-	//sampler := monoSample(phasorFunc)
-	sampler := Visualize(sampleRate, Inferno, RenderStereo(helloSample.AsLoopingTFunc(), helloSample.AsLoopingTFunc()))
+	// sampler := Visualize(sampleRate, Inferno, RenderStereo(
+	// 	G2T(phasor.Sine, FreqFunc(Hz(20))),
+	// 	G2T(phasor2.Sine, FreqFunc(KHz(20)))))
+	sampler := Visualize(sampleRate, Inferno, RenderStereo(phasorFunc, phasorFunc))
+	// sampler := Visualize(sampleRate, Inferno, RenderStereo(helloSample.AsLoopingTFunc(), helloSample.AsLoopingTFunc()))
 
 	stream, err := portaudio.OpenDefaultStream(0, channels, float64(sampleRate), framesPerBuffer, downsample(sampler))
 	chk(err)
@@ -64,7 +67,7 @@ func downsample(inner Rasterizer) func([][]float32) {
 func phasorFunc(t Timecode) Amplitude {
 	df := TMap(G2T(phasor2.Sine, FreqFunc(Hz(0.5))),
 		func(a Amplitude) Amplitude {
-			return 500 + a*200
+			return 10000 + a*9000
 		})
 
 	return Amplitude(G2T(phasor.Sine, df)(t))
