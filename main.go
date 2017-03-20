@@ -9,6 +9,8 @@ import (
 )
 
 const sampleRate = Frequency(44100)
+const channels = 2
+const framesPerBuffer = 512
 
 var phasor TrigOscillator
 var phasor2 TrigOscillator
@@ -30,15 +32,33 @@ func main() {
 	defer portaudio.Terminate()
 
 	//sampler := monoSample(phasorFunc)
-	sampler := stereoSample(helloSample.AsLoopingTFunc(), helloSample.AsLoopingTFunc())
-	channels := 2
-	stream, err := portaudio.OpenDefaultStream(0, channels, float64(sampleRate), 0, sampler)
+	sampler := Visualize(sampleRate, Inferno, RenderStereo(helloSample.AsLoopingTFunc(), helloSample.AsLoopingTFunc()))
+
+	stream, err := portaudio.OpenDefaultStream(0, channels, float64(sampleRate), framesPerBuffer, downsample(sampler))
 	chk(err)
 
 	defer stream.Close()
 	chk(stream.Start())
 	time.Sleep(4 * time.Second)
 	chk(stream.Stop())
+}
+
+func downsample(inner Rasterizer) func([][]float32) {
+	// allocate a float64 buffer once to rasterize into
+	out64 := make([][]float64, channels)
+	for i := range out64 {
+		out64[i] = make([]float64, framesPerBuffer)
+	}
+
+	return func(out32 [][]float32) {
+		inner(out64)
+		// downsample each float64 into a float32 for compatibility with portaudio
+		for i := range out32 {
+			for j := range out32[i] {
+				out32[i][j] = float32(out64[i][j])
+			}
+		}
+	}
 }
 
 func phasorFunc(t Timecode) Amplitude {
@@ -48,29 +68,6 @@ func phasorFunc(t Timecode) Amplitude {
 		})
 
 	return Amplitude(G2T(phasor.Sine, df)(t))
-}
-
-func monoSample(tfunc TFunc) func([][]float32) {
-	var t uint64
-	return func(out [][]float32) {
-		for i := range out[0] {
-			var tc = Timecode(t + uint64(i))
-			out[0][i] = float32(tfunc(tc))
-		}
-		t = t + uint64(len(out[0]))
-	}
-}
-
-func stereoSample(left TFunc, right TFunc) func([][]float32) {
-	var t uint64
-	return func(out [][]float32) {
-		for i := range out[0] {
-			var tc = Timecode(t + uint64(i))
-			out[0][i] = float32(left(tc))
-			out[1][i] = float32(right(tc))
-		}
-		t = t + uint64(len(out[0]))
-	}
 }
 
 func chk(err error) {
