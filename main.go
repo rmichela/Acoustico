@@ -9,24 +9,24 @@ import (
 )
 
 const sampleRate = Frequency(44100)
-const channels = 2
+const channels = 1
 const framesPerBuffer = 512
 
 var phasor TrigOscillator
 var phasor2 TrigOscillator
 
-var helloSample *Sample
+var sample *Sample
 
 func main() {
 
 	phasor = NewOscillator(sampleRate)
 	phasor2 = NewOscillator(sampleRate)
 
-	file, error := os.Open("samples/hello.wav")
+	file, error := os.Open("samples/anewbeginning.wav")
 	chk(error)
 	wav, error := wav.New(file)
 	chk(error)
-	helloSample, error = NewSample(wav)
+	sample, error = NewSample(wav)
 
 	portaudio.Initialize()
 	defer portaudio.Terminate()
@@ -34,7 +34,7 @@ func main() {
 	// sampler := Visualize(sampleRate, Inferno, RenderStereo(
 	// 	G2T(phasor.Sine, FreqFunc(Hz(20))),
 	// 	G2T(phasor2.Sine, FreqFunc(KHz(20)))))
-	sampler := Visualize(sampleRate, Inferno, RenderStereo(phasorFunc, phasorFunc))
+	sampler := Visualize(sampleRate, Inferno, RenderMono(sample.AsTFunc()))
 	// sampler := Visualize(sampleRate, Inferno, RenderStereo(helloSample.AsLoopingTFunc(), helloSample.AsLoopingTFunc()))
 
 	stream, err := portaudio.OpenDefaultStream(0, channels, float64(sampleRate), framesPerBuffer, downsample(sampler))
@@ -42,7 +42,7 @@ func main() {
 
 	defer stream.Close()
 	chk(stream.Start())
-	time.Sleep(4 * time.Second)
+	time.Sleep(120 * time.Second)
 	chk(stream.Stop())
 }
 

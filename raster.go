@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/mjibson/go-dsp/spectral"
 )
@@ -68,10 +67,9 @@ func Visualize(sampleRate Frequency, colormap Colormap, inner Rasterizer) Raster
 		for i := range psd {
 			psd[i] /= float64(len(segments))
 
-			max = math.Max(max, psd[i])
-
-			printColor(psd[i]/max, colormap)
+			printColor(psd[i]/256, colormap)
 		}
+		print(max)
 		println()
 	}
 }
