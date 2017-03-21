@@ -45,8 +45,9 @@ func Visualize(sampleRate Frequency, colormap Colormap, inner Rasterizer) Raster
 	segmentLength := 256
 
 	// stores the rendered output
-	lineQueue := make(chan *bytes.Buffer, 16)
-	go printer(lineQueue)
+	lineQueueDepth := 8
+	lineQueue := make(chan []float64, lineQueueDepth)
+	go printer(lineQueue, segmentLength, colormap)
 
 	options := new(spectral.PwelchOptions)
 	options.Scale_off = true
@@ -87,29 +88,29 @@ func Visualize(sampleRate Frequency, colormap Colormap, inner Rasterizer) Raster
 			}
 		}
 
-		// render a line
-		lineQueue <- printColor(psd, colormap)
+		// skip line rendering if there are too many lines waiting to be rendered
+		if len(lineQueue) < lineQueueDepth {
+			lineQueue <- psd
+		}
 	}
 }
 
-func printColor(psd []float64, colormap Colormap) *bytes.Buffer {
-	outLine := bytes.NewBuffer(make([]byte, 30*len(psd), 30*len(psd)))
-	for i := range psd {
-		r, g, b := colormap(psd[i])
-		outLine.WriteString("\x1b[48;2;")
-		outLine.WriteString(strconv.Itoa(int(r)))
-		outLine.WriteString(";")
-		outLine.WriteString(strconv.Itoa(int(g)))
-		outLine.WriteString(";")
-		outLine.WriteString(strconv.Itoa(int(b)))
-		outLine.WriteString("m \x1b[0m")
-	}
-	return outLine
-}
-
-func printer(lineQueue chan *bytes.Buffer) {
+// Renders printed lines from a queue
+func printer(lineQueue chan []float64, segmentLength int, colormap Colormap) {
+	outLine := bytes.NewBuffer(make([]byte, 30*segmentLength, 30*segmentLength))
 	for {
-		buffer := <-lineQueue
-		fmt.Println(buffer.String())
+		psd := <-lineQueue
+		outLine.Reset()
+		for i := range psd {
+			r, g, b := colormap(psd[i])
+			outLine.WriteString("\x1b[48;2;")
+			outLine.WriteString(strconv.Itoa(int(r)))
+			outLine.WriteString(";")
+			outLine.WriteString(strconv.Itoa(int(g)))
+			outLine.WriteString(";")
+			outLine.WriteString(strconv.Itoa(int(b)))
+			outLine.WriteString("m \x1b[0m")
+		}
+		fmt.Println(outLine.String())
 	}
 }
