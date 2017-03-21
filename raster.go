@@ -1,7 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"math"
+
+	"bytes"
+
+	"strconv"
 
 	"github.com/mjibson/go-dsp/spectral"
 )
@@ -36,45 +40,69 @@ func RenderStereo(left TFunc, right TFunc) Rasterizer {
 
 // Visualize renders a Rasterizer's power spectral density to the screen
 func Visualize(sampleRate Frequency, colormap Colormap, inner Rasterizer) Rasterizer {
+	lowerAudible := Hz(20)
+	upperAudible := KHz(20)
+
+	segmentLength := 256
+
+	// stores the rendered output
+	outLine := bytes.NewBuffer(make([]byte, 30*segmentLength, 30*segmentLength))
+	var r, g, b byte
+
 	options := new(spectral.PwelchOptions)
 	options.Scale_off = true
-	options.Pad = 256
-
-	var max float64
+	options.Pad = segmentLength
 
 	return func(out [][]float64) {
 		// compute raster values from the inner rasterizer
 		inner(out)
 
-		// divide the rasterized sound into 256 sample segments
+		// divide the rasterized sound into [segmentLength] sample segments
 		var segments [][]float64
 		for _, chanBuf := range out {
-			chanSegs := spectral.Segment(chanBuf, 256, 0)
+			chanSegs := spectral.Segment(chanBuf, segmentLength, 0)
 			segments = append(segments, chanSegs...)
 		}
 
 		// compute the averge PSD for all segments
 		psd := make([]float64, options.Pad/2+1) // output of FFT is len(time domain)/2+1
+		var freqs []float64
 		for _, seg := range segments {
+			var pxx []float64
 			// compute the PSD for each segment
-			pxx, _ := spectral.Pwelch(seg, float64(sampleRate), options)
+			pxx, freqs = spectral.Pwelch(seg, float64(sampleRate), options)
 			for i := range pxx {
 				psd[i] += pxx[i]
 			}
 			// println()
 		}
-		// divide by number of segments to get average, then print
-		for i := range psd {
-			psd[i] /= float64(len(segments))
 
-			printColor(psd[i]/256, colormap)
+		// render samples to the output buffer
+		outLine.Reset()
+		for i := range psd {
+			// only render samples in the audible range
+			if float64(lowerAudible) < freqs[i] && freqs[i] < float64(upperAudible) {
+				// divide by number of segments to get average
+				p := psd[i] / float64(len(segments))
+				// linearize the PSD
+				p = p * math.Sqrt(freqs[i]) * 0.5
+
+				// render a 'pixel'
+				r, g, b = colormap(p)
+				outLine.WriteString("\x1b[48;2;")
+				outLine.WriteString(strconv.Itoa(int(r)))
+				outLine.WriteString(";")
+				outLine.WriteString(strconv.Itoa(int(g)))
+				outLine.WriteString(";")
+				outLine.WriteString(strconv.Itoa(int(b)))
+				outLine.WriteString("m \x1b[0m")
+			}
 		}
-		print(max)
-		println()
+		println(outLine.String())
 	}
 }
 
-func printColor(value float64, colormap Colormap) {
-	r, g, b := colormap(value)
-	fmt.Printf("\x1b[48;2;%d;%d;%dm \x1b[0m", r, g, b)
-}
+// func printColor(value float64, colormap Colormap) {
+// 	r, g, b := colormap(value)
+// 	fmt.Printf("\x1b[48;2;%d;%d;%dm \x1b[0m", r, g, b)
+// }
