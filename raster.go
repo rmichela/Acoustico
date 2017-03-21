@@ -1,10 +1,9 @@
 package main
 
 import (
-	"math"
-
 	"bytes"
-
+	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/mjibson/go-dsp/spectral"
@@ -46,8 +45,8 @@ func Visualize(sampleRate Frequency, colormap Colormap, inner Rasterizer) Raster
 	segmentLength := 256
 
 	// stores the rendered output
-	outLine := bytes.NewBuffer(make([]byte, 30*segmentLength, 30*segmentLength))
-	var r, g, b byte
+	lineQueue := make(chan *bytes.Buffer, 16)
+	go printer(lineQueue)
 
 	options := new(spectral.PwelchOptions)
 	options.Scale_off = true
@@ -77,32 +76,40 @@ func Visualize(sampleRate Frequency, colormap Colormap, inner Rasterizer) Raster
 			// println()
 		}
 
-		// render samples to the output buffer
-		outLine.Reset()
+		// normalize the PSD
 		for i := range psd {
 			// only render samples in the audible range
 			if float64(lowerAudible) < freqs[i] && freqs[i] < float64(upperAudible) {
 				// divide by number of segments to get average
-				p := psd[i] / float64(len(segments))
+				psd[i] /= float64(len(segments))
 				// linearize the PSD
-				p = p * math.Sqrt(freqs[i]) * 0.5
-
-				// render a 'pixel'
-				r, g, b = colormap(p)
-				outLine.WriteString("\x1b[48;2;")
-				outLine.WriteString(strconv.Itoa(int(r)))
-				outLine.WriteString(";")
-				outLine.WriteString(strconv.Itoa(int(g)))
-				outLine.WriteString(";")
-				outLine.WriteString(strconv.Itoa(int(b)))
-				outLine.WriteString("m \x1b[0m")
+				psd[i] *= math.Sqrt(freqs[i]) * 0.5
 			}
 		}
-		println(outLine.String())
+
+		// render a line
+		lineQueue <- printColor(psd, colormap)
 	}
 }
 
-// func printColor(value float64, colormap Colormap) {
-// 	r, g, b := colormap(value)
-// 	fmt.Printf("\x1b[48;2;%d;%d;%dm \x1b[0m", r, g, b)
-// }
+func printColor(psd []float64, colormap Colormap) *bytes.Buffer {
+	outLine := bytes.NewBuffer(make([]byte, 30*len(psd), 30*len(psd)))
+	for i := range psd {
+		r, g, b := colormap(psd[i])
+		outLine.WriteString("\x1b[48;2;")
+		outLine.WriteString(strconv.Itoa(int(r)))
+		outLine.WriteString(";")
+		outLine.WriteString(strconv.Itoa(int(g)))
+		outLine.WriteString(";")
+		outLine.WriteString(strconv.Itoa(int(b)))
+		outLine.WriteString("m \x1b[0m")
+	}
+	return outLine
+}
+
+func printer(lineQueue chan *bytes.Buffer) {
+	for {
+		buffer := <-lineQueue
+		fmt.Println(buffer.String())
+	}
+}
