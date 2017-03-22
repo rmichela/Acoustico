@@ -67,6 +67,20 @@ func Visualize(sampleRate Frequency, colormap Colormap, inner Rasterizer) Raster
 			segments = append(segments, chanSegs...)
 		}
 
+		// subtract the mean of each segment from each segment's sample
+		// https://www.mathworks.com/matlabcentral/answers/267658-why-am-i-getting-huge-values-on-low-frequencies-of-my-psd#comment_342452
+		for i := range segments {
+			segment := segments[i]
+			var avg float64
+			for j := range segment {
+				avg += segment[j]
+			}
+			avg /= float64(len(segment))
+			for j := range segment {
+				segment[j] -= avg
+			}
+		}
+
 		// compute the averge PSD for all segments
 		psd := make([]float64, options.Pad/2+1) // output of FFT is len(time domain)/2+1
 		var freqs []float64
@@ -112,18 +126,14 @@ func printer(lineQueue chan []float64, segmentLength int, colormap Colormap) {
 		psd := <-lineQueue
 		outLine.Reset()
 		for i := range psd {
-			// drop the lowest two frequency bins to to 1/f noise
-			// http://dsp.stackexchange.com/questions/540/lower-frequencies-stronger-in-fft
-			if i >= 2 {
-				r, g, b := colormap(psd[i])
-				outLine.WriteString("\x1b[48;2;")
-				outLine.WriteString(strconv.Itoa(int(r)))
-				outLine.WriteString(";")
-				outLine.WriteString(strconv.Itoa(int(g)))
-				outLine.WriteString(";")
-				outLine.WriteString(strconv.Itoa(int(b)))
-				outLine.WriteString("m \x1b[0m")
-			}
+			r, g, b := colormap(psd[i])
+			outLine.WriteString("\x1b[48;2;")
+			outLine.WriteString(strconv.Itoa(int(r)))
+			outLine.WriteString(";")
+			outLine.WriteString(strconv.Itoa(int(g)))
+			outLine.WriteString(";")
+			outLine.WriteString(strconv.Itoa(int(b)))
+			outLine.WriteString("m \x1b[0m")
 		}
 		fmt.Println(outLine.String())
 	}
