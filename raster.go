@@ -98,8 +98,10 @@ func Visualize(sampleRate Frequency, colormap Colormap, inner Rasterizer) Raster
 		for i := range psd {
 			// divide by number of segments to get average
 			psd[i] /= float64(len(segments))
-			// linearize the PSD
+			// linearize the PSD. power is expressed in relationship to the square root of the frequency
 			psd[i] *= math.Sqrt(freqs[i])
+			// plot data intensity on a logarithmic scale between zero and 1
+			psd[i] = math.Log10(psd[i] + 1)
 		}
 
 		// skip line rendering if there are too many lines waiting to be rendered
